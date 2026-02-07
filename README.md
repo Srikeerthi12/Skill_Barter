@@ -1,0 +1,1 @@
+Phase 1 delivers a fully functional MVP enabling skill-based barter exchanges without monetary transactions. Users can authenticate, list skills, discover other users’ skills, and initiate exchange requests with approval workflows

@@ -1,0 +1,27 @@
+{
+  "name": "skill-bartering-backend",
+  "version": "1.0.0",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "db:init": "node src/db/init.js",
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.0",
+    "pg": "^8.13.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  },
+  "description": "- Create `backend/.env`\r - Install deps: `npm install`\r - Run: `npm run dev`",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
