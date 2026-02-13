@@ -27,21 +27,46 @@ export default function Register() {
   return (
     <div className="authWrap">
       <div className="card authCard">
-      <h2>Create your account</h2>
-      <p className="muted">Join and start bartering skills.</p>
-      <form onSubmit={onSubmit}>
-        <input className="input" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-        <div style={{ height: 10 }} />
-        <input className="input" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <div style={{ height: 10 }} />
-        <input className="input" placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        <div style={{ height: 12 }} />
-        <button className="button" type="submit">Create account</button>
-      </form>
-      {error ? <div style={{ color: '#fca5a5', marginTop: 10 }}>{error}</div> : null}
-      <div style={{ marginTop: 12, opacity: 0.9 }}>
-        Have an account? <Link to="/login">Login</Link>
-      </div>
+        <div className="authBrand" aria-label="Skill Barter">
+          <span className="authBrandLogo" aria-hidden="true">
+            <img className="authBrandLogoImg" src="/logo.svg" alt="" />
+          </span>
+          <span className="authBrandText">Skill Barter</span>
+        </div>
+
+        <h2 className="authTitle">Create your account</h2>
+        <p className="muted authSubtitle">Join and start bartering skills.</p>
+
+        <form className="authForm" onSubmit={onSubmit}>
+          <input
+            className="input"
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoComplete="name"
+          />
+          <input
+            className="input"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+          />
+          <input
+            className="input"
+            placeholder="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+          />
+          <button className="button block" type="submit">Create account</button>
+        </form>
+
+        {error ? <div className="authError">{error}</div> : null}
+        <div className="authFooter">
+          Have an account? <Link to="/login">Login</Link>
+        </div>
       </div>
     </div>
   );

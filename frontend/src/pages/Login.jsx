@@ -29,19 +29,39 @@ export default function Login() {
   return (
     <div className="authWrap">
       <div className="card authCard">
-      <h2>Welcome back</h2>
-      <p className="muted">Log in to continue.</p>
-      <form onSubmit={onSubmit}>
-        <input className="input" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <div style={{ height: 10 }} />
-        <input className="input" placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        <div style={{ height: 12 }} />
-        <button className="button" type="submit">Login</button>
-      </form>
-      {error ? <div style={{ color: '#fca5a5', marginTop: 10 }}>{error}</div> : null}
-      <div style={{ marginTop: 12, opacity: 0.9 }}>
-        No account? <Link to="/register">Register</Link>
-      </div>
+        <div className="authBrand" aria-label="Skill Barter">
+          <span className="authBrandLogo" aria-hidden="true">
+            <img className="authBrandLogoImg" src="/logo.svg" alt="" />
+          </span>
+          <span className="authBrandText">Skill Barter</span>
+        </div>
+
+        <h2 className="authTitle">Welcome back</h2>
+        <p className="muted authSubtitle">Log in to continue.</p>
+
+        <form className="authForm" onSubmit={onSubmit}>
+          <input
+            className="input"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+          />
+          <input
+            className="input"
+            placeholder="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+          />
+          <button className="button block" type="submit">Login</button>
+        </form>
+
+        {error ? <div className="authError">{error}</div> : null}
+        <div className="authFooter">
+          No account? <Link to="/register">Register</Link>
+        </div>
       </div>
     </div>
   );

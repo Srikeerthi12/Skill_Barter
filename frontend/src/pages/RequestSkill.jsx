@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { createRequestApi } from '../api/exchange.api';
 import { getSkillApi, listSkillsApi } from '../api/skill.api';
 import { useAuth } from '../hooks/useAuth';
@@ -13,7 +13,8 @@ export default function RequestSkill() {
   const { user } = useAuth();
 
   const [message, setMessage] = useState('');
-  const [skillOfferedId, setSkillOfferedId] = useState('');
+  const [offeredSkillIds, setOfferedSkillIds] = useState([]);
+  const [interestedSkillIds, setInterestedSkillIds] = useState([]);
 
   const { data: skillData, isLoading: isLoadingSkill } = useQuery({
     queryKey: ['skill', id],
@@ -40,15 +41,25 @@ export default function RequestSkill() {
     return all.filter((s) => String(s.user_id) === String(user.id));
   }, [skillsData?.skills, user?.id]);
 
+  const receiverSkills = useMemo(() => {
+    const all = skillsData?.skills || [];
+    if (!skill?.user_id) return [];
+    return all.filter((s) => String(s.user_id) === String(skill.user_id));
+  }, [skillsData?.skills, skill?.user_id]);
+
   const isOwner = user?.id && skill?.user_id && String(user.id) === String(skill.user_id);
 
   const { mutate: send, isPending } = useMutation({
     mutationFn: async () => {
       if (!skill?.id || !skill?.user_id) throw new Error('Missing skill data');
+
+      if (!offeredSkillIds.length) throw new Error('Select at least one skill to offer');
+
+      const interests = interestedSkillIds.length ? interestedSkillIds : [Number(skill.id)];
       const payload = {
-        owner: Number(skill.user_id),
-        skillRequested: Number(skill.id),
-        skillOffered: skillOfferedId ? Number(skillOfferedId) : null,
+        receiver: Number(skill.user_id),
+        offeredSkills: offeredSkillIds.map((v) => Number(v)),
+        interestedSkills: interests.map((v) => Number(v)),
         message,
       };
       const res = await createRequestApi(payload);
@@ -78,16 +89,22 @@ export default function RequestSkill() {
 
   return (
     <div style={{ display: 'grid', gap: 14 }}>
-      <div className="pageHeader">
-        <div>
-          <h2 style={{ margin: 0 }}>Request Skill</h2>
-          <div className="muted">Send a barter request to the skill owner.</div>
-        </div>
+      <div className="pageActions">
+        <div className="muted">Send a barter request to the skill owner.</div>
       </div>
 
       <div className="card" style={{ display: 'grid', gap: 10 }}>
         <div style={{ fontWeight: 800 }}>{skill.title}</div>
-        <div className="muted">Owner: {skill.owner_name || skill.user_id}</div>
+        <div className="muted">
+          Owner:{' '}
+          {skill.user_id ? (
+            <Link to={`/user/${skill.user_id}`} style={{ fontWeight: 800 }}>
+              {skill.owner_name || `User ${skill.user_id}`}
+            </Link>
+          ) : (
+            skill.owner_name || 'Unknown'
+          )}
+        </div>
         <div style={{ whiteSpace: 'pre-wrap' }}>{skill.description}</div>
       </div>
 
@@ -95,24 +112,80 @@ export default function RequestSkill() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            if (!mySkills.length) {
+              toast.error('Add a skill first so you can offer it in barter');
+              return;
+            }
+            if (!offeredSkillIds.length) {
+              toast.error('Please select at least one skill to offer');
+              return;
+            }
             send();
           }}
         >
           <label className="muted" style={{ display: 'block', marginBottom: 6 }}>
-            Offer one of your skills (optional)
+            Offer one or more of your skills
           </label>
-          <select
-            className="input"
-            value={skillOfferedId}
-            onChange={(e) => setSkillOfferedId(e.target.value)}
-          >
-            <option value="">No offered skill</option>
-            {mySkills.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.title}
-              </option>
-            ))}
-          </select>
+
+          <div className="miniList" style={{ marginTop: 6 }}>
+            {mySkills.map((s) => {
+              const checked = offeredSkillIds.includes(String(s.id));
+              return (
+                <label key={s.id} className="miniRow" style={{ cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(e) => {
+                      setOfferedSkillIds((prev) => {
+                        const set = new Set(prev);
+                        if (e.target.checked) set.add(String(s.id));
+                        else set.delete(String(s.id));
+                        return Array.from(set);
+                      });
+                    }}
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <div className="miniTitle">{s.title}</div>
+                    <div className="muted miniSub">You offer this</div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+
+          <div style={{ height: 12 }} />
+
+          <label className="muted" style={{ display: 'block', marginBottom: 6 }}>
+            Skills you’re interested in learning (from {skill.owner_name || 'the owner'})
+          </label>
+
+          <div className="miniList" style={{ marginTop: 6 }}>
+            {receiverSkills.map((s) => {
+              const preselected = String(s.id) === String(skill.id);
+              const checked = preselected || interestedSkillIds.includes(String(s.id));
+              return (
+                <label key={s.id} className="miniRow" style={{ cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={preselected}
+                    onChange={(e) => {
+                      setInterestedSkillIds((prev) => {
+                        const set = new Set(prev);
+                        if (e.target.checked) set.add(String(s.id));
+                        else set.delete(String(s.id));
+                        return Array.from(set);
+                      });
+                    }}
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <div className="miniTitle">{s.title}</div>
+                    <div className="muted miniSub">{preselected ? 'Selected from this skill page' : 'Interested'}</div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
 
           <div style={{ height: 10 }} />
 
@@ -133,14 +206,14 @@ export default function RequestSkill() {
             <button className="button secondary" type="button" onClick={() => navigate('/skills')}>
               Back
             </button>
-            <button className="button" type="submit" disabled={isPending}>
+            <button className="button" type="submit" disabled={isPending || !mySkills.length || !offeredSkillIds.length}>
               {isPending ? 'Sending…' : 'Send request'}
             </button>
           </div>
 
           {mySkills.length === 0 ? (
             <div className="muted" style={{ marginTop: 10 }}>
-              Tip: add a skill first, then you can offer it in barter.
+              You don’t have any skills yet. <Link to="/skills/add">Add a skill</Link> to request this.
             </div>
           ) : null}
         </form>

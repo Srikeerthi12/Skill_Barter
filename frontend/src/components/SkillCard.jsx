@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import {
   FiActivity,
@@ -37,6 +37,14 @@ export default function SkillCard({ skill, enrolled = false, enrolledText = 'Enr
   const skillId = skill?.id ?? skill?._id;
   const ownerId = skill?.user_id ?? skill?.userId;
   const ownerName = skill?.owner_name ?? skill?.ownerName;
+  const skillAverageRating =
+    skill?.skill_average_rating ??
+    skill?.skillAverageRating ??
+    0;
+  const skillRatingsCount =
+    skill?.skill_ratings_count ??
+    skill?.skillRatingsCount ??
+    0;
   const isOwner = user?.id && ownerId && String(ownerId) === String(user.id);
   const Icon = pickSkillIcon(skill);
 
@@ -46,13 +54,40 @@ export default function SkillCard({ skill, enrolled = false, enrolledText = 'Enr
         <div className="skillIcon" aria-hidden="true"><Icon /></div>
         <div style={{ minWidth: 0 }}>
           <div className="skillTitle">{skill.title}</div>
-          <div className="muted skillMeta">by {ownerName || `User ${ownerId || ''}`}</div>
+          <div className="muted skillMeta">
+            by{' '}
+            {ownerId ? (
+              <Link to={`/user/${ownerId}`} style={{ fontWeight: 800 }}>
+                {ownerName || `User ${ownerId}`}
+              </Link>
+            ) : (
+              ownerName || 'Unknown'
+            )}
+          </div>
+        </div>
+
+        <div style={{ justifySelf: 'end' }}>
+          {Number(skillRatingsCount) > 0 ? (
+            <div className="pill" style={{ cursor: 'default' }}>
+              {Number(skillAverageRating)}/5 ({Number(skillRatingsCount)})
+            </div>
+          ) : (
+            <div className="pill" style={{ cursor: 'default' }}>No ratings</div>
+          )}
         </div>
       </div>
 
       <div className="skillDesc">{skill.description}</div>
 
       <div className="skillActions">
+        <button
+          className="button secondary"
+          type="button"
+          disabled={!skillId}
+          onClick={() => navigate(`/skills/${skillId}`)}
+        >
+          View
+        </button>
         {isOwner ? (
           <button
             className="button secondary"
@@ -78,3 +113,4 @@ export default function SkillCard({ skill, enrolled = false, enrolledText = 'Enr
     </div>
   );
 }
+

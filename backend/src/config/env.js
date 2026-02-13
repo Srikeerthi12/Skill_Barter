@@ -15,6 +15,13 @@ const env = {
 	JWT_SECRET: process.env.JWT_SECRET || 'dev_secret_change_me',
 	JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
 
+	// Security / auth hardening
+	REQUIRE_EMAIL_ALLOWLIST: (process.env.REQUIRE_EMAIL_ALLOWLIST || 'false').toLowerCase() === 'true',
+	GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
+
+	// Optional: encrypt message bodies at rest (32-byte key in hex or base64)
+	MESSAGE_ENCRYPTION_KEY: process.env.MESSAGE_ENCRYPTION_KEY || '',
+
 	// Or use individual fields (only used if DATABASE_URL is empty)
 	PGHOST: process.env.PGHOST || 'localhost',
 	PGPORT: Number(process.env.PGPORT || 5432),

@@ -1,68 +1,144 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { Link } from 'react-router-dom';
+import { getMyProfileApi, getUserReviewsApi } from '../api/user.api';
+import Loader from '../components/Loader.jsx';
+import EmptyState from '../components/EmptyState.jsx';
+import ProfileCard from '../components/ProfileCard.jsx';
 
 import { useAuth } from '../hooks/useAuth';
 
-const schema = z.object({
-  name: z.string().min(2, 'Name is too short').max(60, 'Name is too long'),
-  email: z.string().email('Enter a valid email'),
-});
-
 export default function Profile() {
   const { user } = useAuth();
+  const [reviewsOffset, setReviewsOffset] = useState(0);
+  const reviewsLimit = 10;
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      name: user?.name || '',
-      email: user?.email || '',
+  const reviewsPageSize = reviewsOffset + reviewsLimit;
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['myProfile'],
+    enabled: Boolean(user?.id),
+    queryFn: async () => {
+      const res = await getMyProfileApi();
+      return res.data;
+    },
+  });
+
+  const myUserId = data?.profile?.user?.id;
+  const { data: reviewsData, isLoading: isLoadingReviews, isError: isReviewsError } = useQuery({
+    queryKey: ['myReviews', myUserId, reviewsPageSize],
+    enabled: Boolean(myUserId) && !isLoading && !isError,
+    queryFn: async () => {
+      const res = await getUserReviewsApi(myUserId, { limit: reviewsPageSize, offset: 0 });
+      return res.data;
     },
   });
 
   useEffect(() => {
-    reset({
-      name: user?.name || '',
-      email: user?.email || '',
-    });
-  }, [user, reset]);
+    if (isError) toast.error('Failed to load profile');
+  }, [isError]);
 
-  async function onSubmit() {
-    toast('Profile update API not added yet');
+  useEffect(() => {
+    if (isReviewsError) toast.error('Failed to load reviews');
+  }, [isReviewsError]);
+
+  if (isLoading) return <Loader />;
+
+  const profile = data?.profile;
+  if (!profile?.user) {
+    return <EmptyState title="Profile unavailable" description="Please try again." />;
   }
 
+  const skills = profile.skills || [];
+
+  const reviews = reviewsData?.reviews || [];
+  const pagination = reviewsData?.pagination;
+  const canLoadMore = Boolean(pagination && pagination.offset + pagination.limit < pagination.total);
+
   return (
-    <div className="card" style={{ maxWidth: 720, margin: '0 auto' }}>
-      <h2 style={{ marginTop: 0 }}>Profile</h2>
-      <div className="muted" style={{ marginBottom: 12 }}>
-        View your account details. (Editing requires a backend endpoint.)
+    <div style={{ display: 'grid', gap: 14 }}>
+      <div className="pageActions">
+        <div className="muted">Your account and skill listing.</div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'grid', gap: 10 }}>
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>Name</div>
-          <input className="input" placeholder="Your name" {...register('name')} />
-          {errors.name ? <div style={{ color: 'var(--danger)', marginTop: 6 }}>{errors.name.message}</div> : null}
-        </div>
+      <ProfileCard
+        user={profile.user}
+        completedExchangesCount={profile.completedExchangesCount}
+        reputation={profile.reputation}
+      />
 
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>Email</div>
-          <input className="input" placeholder="you@example.com" {...register('email')} />
-          {errors.email ? <div style={{ color: 'var(--danger)', marginTop: 6 }}>{errors.email.message}</div> : null}
+      {skills.length ? (
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+            <div style={{ fontWeight: 900 }}>My Skills</div>
+            <div className="muted">{skills.length}</div>
+          </div>
+          <div style={{ height: 10 }} />
+          <div className="miniList">
+            {skills.map((s) => (
+              <div key={s.id} className="miniRow">
+                <div style={{ minWidth: 0 }}>
+                  <div className="miniTitle">{s.title}</div>
+                  <div className="muted miniSub">Tap to manage</div>
+                </div>
+                <Link className="button secondary" to={`/skills/${s.id}`}>View</Link>
+                <Link className="button secondary" to={`/skills/${s.id}/edit`}>Edit</Link>
+              </div>
+            ))}
+          </div>
         </div>
+      ) : (
+        <EmptyState title="No skills yet" description="Add a skill so others can request it.">
+          <Link className="button" to="/skills/add">+ Add Skill</Link>
+        </EmptyState>
+      )}
 
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <button className="button" type="submit" disabled={isSubmitting}>Save changes</button>
-          <div className="muted" style={{ fontSize: 12 }}>Coming soon</div>
+      <div className="card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+          <div style={{ fontWeight: 900 }}>Reviews you received</div>
+          <div className="muted">{profile.reputation?.ratingsCount || 0}</div>
         </div>
-      </form>
+        <div style={{ height: 10 }} />
+
+        {isLoadingReviews ? <div className="muted">Loading…</div> : null}
+
+        {!isLoadingReviews && reviews.length ? (
+          <div style={{ display: 'grid', gap: 10 }}>
+            {reviews.map((r) => (
+              <div key={r.id} className="card" style={{ padding: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                  <div style={{ fontWeight: 900 }}>{r.from_name || `User ${r.from_user_id}`}</div>
+                  <div className="pill">{r.rating}/5</div>
+                </div>
+
+                {r.skill_title ? (
+                  <div className="muted" style={{ marginTop: 6, fontSize: 12 }}>
+                    For: {r.skill_title}
+                  </div>
+                ) : null}
+
+                {r.comment ? (
+                  <div className="muted" style={{ marginTop: 8, whiteSpace: 'pre-wrap' }}>{r.comment}</div>
+                ) : (
+                  <div className="muted" style={{ marginTop: 8 }}>No comment.</div>
+                )}
+              </div>
+            ))}
+
+            {canLoadMore ? (
+              <button className="button secondary" type="button" onClick={() => setReviewsOffset((v) => v + reviewsLimit)}>
+                Load more
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {!isLoadingReviews && !reviews.length ? (
+          <div className="muted">No reviews yet.</div>
+        ) : null}
+      </div>
     </div>
   );
 }
+

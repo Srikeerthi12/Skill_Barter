@@ -5,6 +5,8 @@
   "type": "commonjs",
   "scripts": {
     "db:init": "node src/db/init.js",
+    "db:encrypt-messages": "node src/db/encrypt_messages.js",
+    "db:encrypt-sensitive": "node src/db/encrypt_sensitive.js",
     "dev": "nodemon src/server.js",
     "start": "node src/server.js"
   },
@@ -15,7 +17,9 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.0",
-    "pg": "^8.13.3"
+    "multer": "^2.0.0",
+    "pg": "^8.13.3",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

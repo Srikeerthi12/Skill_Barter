@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useNavigate, useParams } from 'react-router-dom';
 import { deleteSkillApi, getSkillApi, updateSkillApi } from '../api/skill.api';
 import { useAuth } from '../hooks/useAuth';
+import SkillForm from '../components/SkillForm.jsx';
 
 export default function EditSkill() {
   const { id } = useParams();
@@ -23,17 +24,12 @@ export default function EditSkill() {
   const skill = data?.skill;
   const isOwner = user?.id && skill?.user_id && String(user.id) === String(skill.user_id);
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-
   useEffect(() => {
-    if (!skill) return;
-    setTitle(skill.title || '');
-    setDescription(skill.description || '');
-  }, [skill?.id]);
+    if (isError) toast.error('Failed to load skill');
+  }, [isError]);
 
   const { mutate: save, isPending: isSaving } = useMutation({
-    mutationFn: async () => {
+    mutationFn: async ({ title, description }) => {
       const res = await updateSkillApi(id, { title, description });
       return res.data;
     },
@@ -79,51 +75,30 @@ export default function EditSkill() {
   return (
     <div className="card" style={{ maxWidth: 720 }}>
       <h2>Edit Skill</h2>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          save();
-        }}
-      >
-        <input
-          className="input"
-          placeholder="Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <div style={{ height: 10 }} />
-        <textarea
-          className="input"
-          placeholder="Description"
-          rows={5}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
+      <SkillForm
+        initialTitle={skill.title || ''}
+        initialDescription={skill.description || ''}
+        isSubmitting={isSaving}
+        submitLabel="Save changes"
+        onCancel={() => navigate('/skills')}
+        onSubmit={(payload) => save(payload)}
+      />
 
-        <div style={{ height: 12 }} />
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between' }}>
-          <button className="button secondary" type="button" onClick={() => navigate('/skills')}>
-            Cancel
-          </button>
-
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button
-              className="button danger"
-              type="button"
-              disabled={isDeleting}
-              onClick={() => {
-                const ok = window.confirm('Delete this skill?');
-                if (ok) remove();
-              }}
-            >
-              {isDeleting ? 'Deleting…' : 'Delete'}
-            </button>
-            <button className="button" type="submit" disabled={isSaving}>
-              {isSaving ? 'Saving…' : 'Save changes'}
-            </button>
-          </div>
-        </div>
-      </form>
+      <div style={{ height: 10 }} />
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button
+          className="button danger"
+          type="button"
+          disabled={isDeleting}
+          onClick={() => {
+            const ok = window.confirm('Delete this skill?');
+            if (ok) remove();
+          }}
+        >
+          {isDeleting ? 'Deleting…' : 'Delete'}
+        </button>
+      </div>
     </div>
   );
 }
+

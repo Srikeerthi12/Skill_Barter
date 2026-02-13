@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { FiChevronDown, FiLogIn, FiLogOut, FiUser } from 'react-icons/fi';
+import { FiChevronDown, FiLogIn, FiLogOut, FiMoon, FiSun, FiUser } from 'react-icons/fi';
 import { useAuth } from '../hooks/useAuth';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -9,6 +9,8 @@ export default function Navbar() {
 
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
+
+  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'light');
 
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -23,9 +25,12 @@ export default function Navbar() {
     if (path === '/requests/new') return 'New Request';
     if (path === '/skills/add') return 'Add Skill';
     if (path === '/profile') return 'Profile';
+    if (/^\/user\/.+/.test(path)) return 'User Profile';
     if (/^\/skills\/.+\/edit$/.test(path)) return 'Edit Skill';
+    if (/^\/skills\/.+/.test(path)) return 'Skill Details';
+    if (/^\/skill\/.+/.test(path)) return 'Skill Details';
     if (/^\/requests\/.+/.test(path)) return 'Request';
-    return 'SkillFlow';
+    return 'Skill Barter';
   }, [location.pathname]);
 
   const displayName = useMemo(() => user?.name || user?.email || 'User', [user]);
@@ -48,6 +53,17 @@ export default function Navbar() {
     document.addEventListener('mousedown', onDocMouseDown);
     return () => document.removeEventListener('mousedown', onDocMouseDown);
   }, []);
+
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try {
+      localStorage.setItem('theme', next);
+    } catch {
+      // ignore
+    }
+    setTheme(next);
+  }
 
   return (
     <div className="nav">
@@ -104,6 +120,17 @@ export default function Navbar() {
                   role="menuitem"
                 >
                   <FiUser /> Profile
+                </button>
+                <button
+                  className="profileDropdownItem"
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    toggleTheme();
+                  }}
+                  role="menuitem"
+                >
+                  {theme === 'dark' ? <FiSun /> : <FiMoon />} {theme === 'dark' ? 'Light mode' : 'Dark mode'}
                 </button>
                 <button
                   className="profileDropdownItem"

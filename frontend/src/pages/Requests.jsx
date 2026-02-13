@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { listRequestsApi, respondRequestApi } from '../api/exchange.api';
@@ -7,6 +7,10 @@ import { useAuth } from '../hooks/useAuth';
 export default function Requests() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  const [acceptingId, setAcceptingId] = useState(null);
+  const [finalOfferedId, setFinalOfferedId] = useState('');
+  const [finalRequestedId, setFinalRequestedId] = useState('');
 
   const {
     data,
@@ -24,13 +28,16 @@ export default function Requests() {
   const requests = data?.requests || [];
 
   const { mutate: respond, isPending: isResponding } = useMutation({
-    mutationFn: async ({ id, status }) => {
-      const res = await respondRequestApi(id, { status });
+    mutationFn: async ({ id, status, skillOffered, skillRequested }) => {
+      const res = await respondRequestApi(id, { status, skillOffered, skillRequested });
       return res.data;
     },
     onSuccess: () => {
       toast.success('Updated request');
       queryClient.invalidateQueries({ queryKey: ['requests'] });
+      setAcceptingId(null);
+      setFinalOfferedId('');
+      setFinalRequestedId('');
     },
     onError: () => toast.error('Failed to update request'),
   });
@@ -49,11 +56,8 @@ export default function Requests() {
 
   return (
     <div style={{ display: 'grid', gap: 14 }}>
-      <div className="pageHeader">
-        <div>
-          <h2 style={{ margin: 0 }}>Requests</h2>
-          <div className="muted">Requests you received and requests you sent.</div>
-        </div>
+      <div className="pageActions">
+        <div className="muted">Requests you received and requests you sent.</div>
       </div>
 
       {isLoading ? (
@@ -94,7 +98,13 @@ export default function Requests() {
                             <button
                               className="button"
                               disabled={isResponding}
-                              onClick={() => respond({ id: r.id, status: 'accepted' })}
+                              onClick={() => {
+                                setAcceptingId(r.id);
+                                const offered = (r.offered_skills || [])[0]?.id;
+                                const interested = (r.interested_skills || [])[0]?.id;
+                                setFinalOfferedId(offered ? String(offered) : '');
+                                setFinalRequestedId(interested ? String(interested) : '');
+                              }}
                             >
                               Accept
                             </button>
@@ -109,6 +119,101 @@ export default function Requests() {
                         ) : null}
                       </div>
                     </div>
+
+                    {r.status === 'pending' ? (
+                      <div style={{ marginTop: 10, display: 'grid', gap: 10 }}>
+                        <div className="muted" style={{ fontSize: 12 }}>
+                          Negotiation:
+                        </div>
+
+                        <div style={{ display: 'grid', gap: 6 }}>
+                          <div style={{ fontWeight: 700, fontSize: 13 }}>They offer you</div>
+                          <div className="muted" style={{ fontSize: 12 }}>
+                            {(r.offered_skills || []).map((s) => s.title).join(', ') || '—'}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gap: 6 }}>
+                          <div style={{ fontWeight: 700, fontSize: 13 }}>They want from you</div>
+                          <div className="muted" style={{ fontSize: 12 }}>
+                            {(r.interested_skills || []).map((s) => s.title).join(', ') || '—'}
+                          </div>
+                        </div>
+
+                        {acceptingId === r.id ? (
+                          <div className="card" style={{ padding: 12 }}>
+                            <div style={{ fontWeight: 800, marginBottom: 8 }}>Confirm final pairing</div>
+
+                            <label className="muted" style={{ display: 'block', marginBottom: 6 }}>
+                              Choose what you will learn
+                            </label>
+                            <select
+                              className="input"
+                              value={finalOfferedId}
+                              onChange={(e) => setFinalOfferedId(e.target.value)}
+                            >
+                              <option value="">Select…</option>
+                              {(r.offered_skills || []).map((s) => (
+                                <option key={s.id} value={s.id}>{s.title}</option>
+                              ))}
+                            </select>
+
+                            <div style={{ height: 10 }} />
+
+                            <label className="muted" style={{ display: 'block', marginBottom: 6 }}>
+                              Choose what you will teach
+                            </label>
+                            <select
+                              className="input"
+                              value={finalRequestedId}
+                              onChange={(e) => setFinalRequestedId(e.target.value)}
+                            >
+                              <option value="">Select…</option>
+                              {(r.interested_skills || []).map((s) => (
+                                <option key={s.id} value={s.id}>{s.title}</option>
+                              ))}
+                            </select>
+
+                            <div style={{ height: 12 }} />
+
+                            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                              <button
+                                type="button"
+                                className="button secondary"
+                                disabled={isResponding}
+                                onClick={() => {
+                                  setAcceptingId(null);
+                                  setFinalOfferedId('');
+                                  setFinalRequestedId('');
+                                }}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                className="button"
+                                disabled={isResponding || !finalOfferedId || !finalRequestedId}
+                                onClick={() => {
+                                  if (!finalOfferedId || !finalRequestedId) {
+                                    toast.error('Select both skills to accept');
+                                    return;
+                                  }
+                                  respond({
+                                    id: r.id,
+                                    status: 'accepted',
+                                    skillOffered: Number(finalOfferedId),
+                                    skillRequested: Number(finalRequestedId),
+                                  });
+                                }}
+                              >
+                                Confirm & Accept
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+
                     {r.message ? (
                       <div style={{ marginTop: 10, whiteSpace: 'pre-wrap' }}>{r.message}</div>
                     ) : null}

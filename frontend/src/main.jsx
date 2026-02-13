@@ -7,6 +7,25 @@ import App from './App.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import './styles/main.css';
 
+function getInitialTheme() {
+  try {
+    const stored = localStorage.getItem('theme');
+    if (stored === 'light' || stored === 'dark') return stored;
+  } catch {
+    // ignore
+  }
+  try {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+  } catch {
+    return 'light';
+  }
+}
+
+const initialTheme = getInitialTheme();
+document.documentElement.dataset.theme = initialTheme;
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

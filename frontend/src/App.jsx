@@ -7,12 +7,15 @@ import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Profile from './pages/Profile.jsx';
+import UserProfile from './pages/UserProfile.jsx';
 import AddSkill from './pages/AddSkill.jsx';
 import EditSkill from './pages/EditSkill.jsx';
+import SkillDetails from './pages/SkillDetails.jsx';
 import RequestSkill from './pages/RequestSkill.jsx';
 import NewRequest from './pages/NewRequest.jsx';
 import Skills from './pages/Skills.jsx';
 import Requests from './pages/Requests.jsx';
+import Chat from './pages/Chat.jsx';
 
 export default function App() {
   return (
@@ -21,9 +24,9 @@ export default function App() {
         position="top-right"
         toastOptions={{
           style: {
-            background: 'rgba(255, 255, 255, 0.98)',
-            color: '#0f172a',
-            border: '1px solid rgba(15, 23, 42, 0.10)',
+            background: 'var(--toastBg)',
+            color: 'var(--text)',
+            border: '1px solid var(--toastBorder)',
           },
         }}
       />
@@ -41,14 +44,19 @@ export default function App() {
         >
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/user/:id" element={<UserProfile />} />
           <Route path="/skills" element={<Skills />} />
           <Route path="/skills/add" element={<AddSkill />} />
+          <Route path="/skills/:id" element={<SkillDetails />} />
+          <Route path="/skill/:id" element={<SkillDetails />} />
           <Route path="/skills/:id/edit" element={<EditSkill />} />
           <Route path="/skills/:id/request" element={<RequestSkill />} />
           <Route path="/requests" element={<Requests />} />
           <Route path="/requests/new" element={<NewRequest />} />
+          <Route path="/chat" element={<Chat />} />
         </Route>
       </Routes>
     </div>
   );
 }
+
