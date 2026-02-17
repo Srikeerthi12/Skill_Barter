@@ -8,9 +8,10 @@ const env = {
 	NODE_ENV: process.env.NODE_ENV || 'development',
 	PORT: Number(process.env.PORT || 5000),
 
-	// Prefer a single URL (easiest with pgAdmin / hosted Postgres)
+	// Database
+	// For MongoDB, set MONGODB_URI (preferred). DATABASE_URL is also supported for compatibility.
+	MONGODB_URI: process.env.MONGODB_URI || '',
 	DATABASE_URL: process.env.DATABASE_URL || '',
-	PG_CONNECTION_STRING: process.env.PG_CONNECTION_STRING || '',
 
 	JWT_SECRET: process.env.JWT_SECRET || 'dev_secret_change_me',
 	JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
@@ -22,7 +23,8 @@ const env = {
 	// Optional: encrypt message bodies at rest (32-byte key in hex or base64)
 	MESSAGE_ENCRYPTION_KEY: process.env.MESSAGE_ENCRYPTION_KEY || '',
 
-	// Or use individual fields (only used if DATABASE_URL is empty)
+	// Legacy Postgres env vars (no longer used after MongoDB migration)
+	PG_CONNECTION_STRING: process.env.PG_CONNECTION_STRING || '',
 	PGHOST: process.env.PGHOST || 'localhost',
 	PGPORT: Number(process.env.PGPORT || 5432),
 	PGDATABASE: process.env.PGDATABASE || 'skill_bartering',

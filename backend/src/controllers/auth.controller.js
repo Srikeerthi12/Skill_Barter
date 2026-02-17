@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { env } = require('../config/env');
-const { query } = require('../config/db');
+const User = require('../models/user.model');
+const { nextId } = require('../utils/sequence');
 
 async function register(req, res, next) {
 	try {
@@ -11,15 +12,20 @@ async function register(req, res, next) {
 		}
 
 		const passwordHash = await bcrypt.hash(String(password), 10);
-		const result = await query(
-			'INSERT INTO users(name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, name, email',
-			[String(name), String(email).toLowerCase(), passwordHash]
-		);
+		const user = await User.create({
+			id: await nextId('users'),
+			name: String(name),
+			email: String(email).toLowerCase(),
+			password_hash: passwordHash,
+		});
 
-		return res.status(201).json({ success: true, user: result.rows[0] });
+		return res.status(201).json({
+			success: true,
+			user: { id: user.id, name: user.name, email: user.email },
+		});
 	} catch (err) {
-		// Unique violation
-		if (err && err.code === '23505') {
+		// Duplicate key
+		if (err && err.code === 11000) {
 			return res.status(409).json({ success: false, message: 'Email already in use' });
 		}
 		return next(err);
@@ -33,10 +39,9 @@ async function login(req, res, next) {
 			return res.status(400).json({ success: false, message: 'email and password are required' });
 		}
 
-		const result = await query('SELECT id, name, email, password_hash FROM users WHERE email = $1', [
-			String(email).toLowerCase(),
-		]);
-		const user = result.rows[0];
+		const user = await User.findOne({ email: String(email).toLowerCase() })
+			.select({ id: 1, name: 1, email: 1, password_hash: 1 })
+			.lean();
 		if (!user) {
 			return res.status(401).json({ success: false, message: 'Invalid credentials' });
 		}
@@ -58,8 +63,13 @@ async function login(req, res, next) {
 
 async function me(req, res, next) {
 	try {
-		const result = await query('SELECT id, name, email FROM users WHERE id = $1', [req.userId]);
-		return res.json({ success: true, user: result.rows[0] || null });
+		const userId = Number(req.userId);
+		if (!Number.isInteger(userId) || userId <= 0) {
+			return res.json({ success: true, user: null });
+		}
+
+		const user = await User.findOne({ id: userId }).select({ id: 1, name: 1, email: 1 }).lean();
+		return res.json({ success: true, user: user || null });
 	} catch (err) {
 		return next(err);
 	}

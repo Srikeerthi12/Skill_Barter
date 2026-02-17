@@ -16,7 +16,7 @@ A full‑stack web app for **skill-for-skill exchanges** (no money involved). Us
 
 - **Frontend**: React + Vite, React Router, React Query, Axios
 - **Backend**: Node.js + Express, Socket.IO
-- **Database**: PostgreSQL
+- **Database**: MongoDB
 
 ## Project Structure
 
@@ -26,7 +26,7 @@ A full‑stack web app for **skill-for-skill exchanges** (no money involved). Us
 ## Prerequisites
 
 - Node.js 18+ recommended
-- PostgreSQL 13+ recommended
+- MongoDB 6+ recommended (local or Atlas)
 
 ## Quick Start
 
@@ -42,19 +42,16 @@ Create `backend/.env`:
 ```dotenv
 PORT=5000
 
-# Use either DATABASE_URL or individual PG* fields.
-DATABASE_URL=postgres://postgres:YOUR_PASSWORD@localhost:5432/SBS
+# MongoDB connection string.
+# Examples:
+# - mongodb://localhost:27017/skill-barter
+# - mongodb+srv://<user>:<pass>@<cluster>/<db>?retryWrites=true&w=majority
+MONGODB_URI=mongodb://localhost:27017/skill-barter
 
 JWT_SECRET=replace_with_a_long_random_string
 
 # 32-byte key (hex or base64). Example below is hex (64 chars).
 MESSAGE_ENCRYPTION_KEY=REPLACE_WITH_64_HEX_CHARS
-```
-
-Initialize/upgrade the schema:
-
-```bash
-npm run db:init
 ```
 
 Start the backend:
@@ -94,7 +91,7 @@ npm run dev -- --port 5173
 
 ## Encryption-at-Rest (Database Privacy)
 
-When `MESSAGE_ENCRYPTION_KEY` is set, the backend encrypts sensitive text before writing to Postgres (AES‑256‑GCM). The API decrypts on read so the UI continues to behave normally.
+When `MESSAGE_ENCRYPTION_KEY` is set, the backend encrypts sensitive text before writing to MongoDB (AES‑256‑GCM). The API decrypts on read so the UI continues to behave normally.
 
 Encrypted columns include:
 
@@ -109,43 +106,6 @@ Encrypted columns include:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-### Encrypt existing plaintext rows (one-time)
-
-Run these **after** setting `MESSAGE_ENCRYPTION_KEY`:
-
-```bash
-cd backend
-npm run db:encrypt-messages
-npm run db:encrypt-sensitive
-```
-
-### Verify encryption in Postgres
-
-Look for values starting with `enc:v1:`:
-
-```sql
-SELECT id, LEFT(message, 20) AS message_prefix
-FROM exchanges
-WHERE message IS NOT NULL
-ORDER BY id DESC
-LIMIT 20;
-
-SELECT id, exchange_id, LEFT(body, 20) AS body_prefix
-FROM exchange_messages
-ORDER BY id DESC
-LIMIT 50;
-
-SELECT id, exchange_id, LEFT(comment, 20) AS comment_prefix
-FROM exchange_feedback
-WHERE comment IS NOT NULL
-ORDER BY id DESC
-LIMIT 50;
-
-SELECT id, LEFT(original_name, 20) AS name_prefix
-FROM exchange_message_attachments
-ORDER BY id DESC
-LIMIT 50;
-```
 
 ## Useful Commands
 
@@ -153,9 +113,6 @@ Backend (from `backend/`):
 
 - `npm run dev` — dev server (nodemon)
 - `npm run start` — production-style start
-- `npm run db:init` — apply/upgrade schema
-- `npm run db:encrypt-messages` — encrypt legacy chat bodies
-- `npm run db:encrypt-sensitive` — encrypt other sensitive columns
 
 Frontend (from `frontend/`):
 
@@ -166,5 +123,5 @@ Frontend (from `frontend/`):
 ## Troubleshooting
 
 - **Frontend port in use**: run `npm run dev -- --port 5173` or change `frontend/vite.config.js`.
-- **Backend can’t connect to Postgres**: verify `DATABASE_URL` and that Postgres is running.
+- **Backend can’t connect to MongoDB**: verify `MONGODB_URI` and that MongoDB is running/reachable.
 - **Encrypted data looks blank**: if the key changes, decryption intentionally fails closed; restore the original `MESSAGE_ENCRYPTION_KEY`.

@@ -1,45 +1,30 @@
-const { Pool } = require('pg');
+const mongoose = require('mongoose');
 const { env } = require('./env');
 
-let pool;
+let didConnect = false;
 
-function buildPoolConfig() {
-	const connectionString = env.DATABASE_URL || env.PG_CONNECTION_STRING;
-	if (connectionString) {
-		return {
-			connectionString,
-			ssl: env.PGSSL ? { rejectUnauthorized: false } : undefined,
-		};
-	}
-
-	return {
-		host: env.PGHOST,
-		port: env.PGPORT,
-		database: env.PGDATABASE,
-		user: env.PGUSER,
-		password: env.PGPASSWORD,
-		ssl: env.PGSSL ? { rejectUnauthorized: false } : undefined,
-	};
+function getMongoUri() {
+	return env.MONGODB_URI || env.DATABASE_URL;
 }
 
 async function connectDb() {
-	if (pool) return pool;
+	if (didConnect && mongoose.connection.readyState === 1) return mongoose.connection;
 
-	pool = new Pool(buildPoolConfig());
-	await pool.query('SELECT 1');
-	return pool;
-}
-
-function getPool() {
-	if (!pool) {
-		throw new Error('Database not connected. Call connectDb() first.');
+	const uri = getMongoUri();
+	if (!uri) {
+		throw new Error('Missing MongoDB connection string. Set MONGODB_URI (preferred) or DATABASE_URL.');
 	}
-	return pool;
+
+	await mongoose.connect(uri, {
+		autoIndex: env.NODE_ENV !== 'production',
+	});
+	if (mongoose.connection.readyState !== 1) {
+		throw new Error('Failed to connect to MongoDB');
+	}
+	// Normalize for existing callers.
+	didConnect = true;
+	return mongoose.connection;
 }
 
-async function query(text, params) {
-	return getPool().query(text, params);
-}
-
-module.exports = { connectDb, getPool, query };
+module.exports = { connectDb };
 
